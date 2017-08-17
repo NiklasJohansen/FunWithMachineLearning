@@ -8,7 +8,7 @@ import java.io.Serializable;
  *
  * @author Niklas Johansen
  * @version 1.0
- *  * @see ActivationFunction
+ * @see ActivationFunction
  */
 public class Sigmoid implements ActivationFunction, Serializable
 {

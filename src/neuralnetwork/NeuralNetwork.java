@@ -119,7 +119,7 @@ public class NeuralNetwork implements Serializable
     }
 
     /**
-     * The network is ready when layers has been added and the network is built.
+     * The network is ready when layers have been added and the network is built.
      * @return a boolean indicating the state of the network
      */
     public boolean isReady()
