@@ -1,9 +1,11 @@
 # Fun With Machine Learning
+------------
 The repository that aims to explore the fascinating world of machine learning and artificial intelligence.
 Follow my journey through jungles of neural networks and fancy named algorithms, as I progress to become the
 not-so-evil genius I was meant to be!
 
 ### Content
+------------
  * A fully functional and scalable feed forward neural network
  * Training algorithms - both supervised and unsupervised
     * Backpropagation
@@ -11,13 +13,15 @@ not-so-evil genius I was meant to be!
  * Example classes with different use cases
     * Training with samples from a data set - XOR operator
  * Different machine learning demos and projects
-    *  Car driving AI (NN and GA) - (coming soon)
+    *  Car driving AI (NN and GA)
 
 ### Contact
+------------
 * Via email: niklasjohansen94@gmail.com
 * Via Twitter: [@NiklasJohansen](https://twitter.com/NiklasJohansen)
 
 ### Code License
+------------
 ```
     MIT License
 

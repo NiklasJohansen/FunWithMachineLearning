@@ -15,7 +15,6 @@ import neuralnetwork.NeuralNetwork;
  */
 public class GeneticAlgorithm
 {
-    private static final float MUTATION_RATE_PERCENTAGE = 20;
     private static final float CUT_LENGTH_PERCENTAGE = 30;
 
     /**
@@ -23,9 +22,10 @@ public class GeneticAlgorithm
      * Uses a two-point crossover method with the cut length determined by the CUT_LENGTH_PERCENTAGE constant.
      * @param motherNetwork the mother network
      * @param fatherNetwork the father network
+     * @param mutationProbability the chance of mutation in percentage
      * @return a new offspring network
      */
-    public NeuralNetwork breed(NeuralNetwork motherNetwork, NeuralNetwork fatherNetwork)
+    public NeuralNetwork breed(NeuralNetwork motherNetwork, NeuralNetwork fatherNetwork, double mutationProbability)
     {
         double[] motherDNA = getDNA(motherNetwork);
         double[] fatherDNA = getDNA(fatherNetwork);
@@ -49,7 +49,8 @@ public class GeneticAlgorithm
             offspringDNA[i] = betweenCutPoints ? motherDNA[i] : fatherDNA[i];
         }
 
-        swapMutateDNA(offspringDNA);
+        if(Math.random() * 100 < mutationProbability)
+            swapMutateDNA(offspringDNA);
 
         return createOffspring(motherNetwork, offspringDNA);
     }
@@ -80,20 +81,16 @@ public class GeneticAlgorithm
 
     /**
      * Mutates the DNA by swapping two genes.
-     * The rate of mutation is determined by the MUTATION_RATE_PERCENTAGE constant.
      * @param DNA the DNA string to be mutated
      */
     private void swapMutateDNA(double[] DNA)
     {
-        if(Math.random() * 100 < MUTATION_RATE_PERCENTAGE)
-        {
-            int swapPoint1 = (int)(Math.random() * (DNA.length - 1));
-            int swapPoint2 = (int)(Math.random() * (DNA.length - 1));
+        int swapPoint1 = (int)(Math.random() * (DNA.length - 1));
+        int swapPoint2 = (int)(Math.random() * (DNA.length - 1));
 
-            double temp = DNA[swapPoint1];
-            DNA[swapPoint1] = DNA[swapPoint2];
-            DNA[swapPoint2] = temp;
-        }
+        double temp = DNA[swapPoint1];
+        DNA[swapPoint1] = DNA[swapPoint2];
+        DNA[swapPoint2] = temp;
     }
 
     /**
