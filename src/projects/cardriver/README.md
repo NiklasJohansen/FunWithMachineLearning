@@ -1,10 +1,8 @@
 # Car Driver
-------------
 This demo explores how a neural network can be trained to drive a car around a randomly generated track.
 ![Screenshot](screenshot.png "A screenshot of a car driving along a track")
 
 ### How it works
-------------
 A number of cars is spawned at the beginning of a track, each equipped with its own randomly weighted neural
 network. Every car has multiple front facing sensors which measures the distance to the nearest side of the
 track. This data is normalized in the range of 0.0 to 1.0 and fed to the cars network. The network uses this
@@ -20,7 +18,6 @@ A new generation of cars with new genetics is created and the simulation restart
 over and over gain, iteratively making the cars better at solving their task.
 
 ### How to use it
- ------------
 Download as ZIP or clone this repository to try it out. A runnable jar is available in this projects root folder.
 
 #### Controls
