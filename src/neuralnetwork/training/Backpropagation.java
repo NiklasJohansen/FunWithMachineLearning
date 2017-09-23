@@ -48,14 +48,12 @@ public class Backpropagation
      * @param network the network to be trained
      * @param nIterations the number of training iterations. Higher numbers may yield lower error rates
      * @param acceptedError The accepted error rate in which the training will complete
+     * @throws IllegalStateException if the network is not ready
      */
     public void trainNetwork(NeuralNetwork network, int nIterations, double acceptedError)
     {
         if(!network.isReady())
-        {
-            System.err.println("The network needs to be built before it can be trained.");
-            return;
-        }
+            throw new IllegalStateException("Training failed - network is not built!");
 
         System.out.println("Training...\n");
         int randomWeightAttempts = 0;

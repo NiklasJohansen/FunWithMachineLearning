@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 /**
  * This class contains the core data of a neuron.
- * All fields are public since the class is used as a basic data container.
+ * Used as a plane data container.
  *
  * @author Niklas Johansen
  * @version 1.0

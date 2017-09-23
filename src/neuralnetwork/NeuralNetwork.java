@@ -13,7 +13,7 @@ import java.util.*;
  * allow for training with the {@link Backpropagation} and {@link GeneticAlgorithm} classes.
  *
  * @author Niklas Johansen
- * @version 1.0
+ * @version 1.1
  * @see NeuronLayer
  * @see Neuron
  */
@@ -22,47 +22,72 @@ public class NeuralNetwork implements Serializable
     private static final int BIAS_NEURONS = 1;
     private static final double WEIGHT_INIT_RANGE = 2.0;
 
-    private Queue<LayerProperty> layerQueue;
-    private NeuronLayer[] neuronLayers;
     private Random random;
+    private NeuronLayer[] neuronLayers;
+    private int nLayers;
     private boolean ready;
 
     public NeuralNetwork()
     {
-        this.neuronLayers = new NeuronLayer[0];
-        this.layerQueue = new LinkedList<>();
         this.random = new Random();
+        this.neuronLayers = new NeuronLayer[3];
+    }
+
+    /**
+     * Adds a new layer to the network.
+     * @param nNeurons the number of neurons in the layer
+     * @param activationFunction the activation function to be used in calculation
+     * @throws IllegalArgumentException if the number of neurons is zero or less
+     */
+    public void addNeuronLayer(int nNeurons, ActivationFunction activationFunction)
+    {
+        if(nNeurons > 0)
+        {
+            if(nLayers >= neuronLayers.length)
+                neuronLayers = Arrays.copyOf(neuronLayers, (int)(neuronLayers.length * 1.5f));
+
+            neuronLayers[nLayers++] = new NeuronLayer(nNeurons, activationFunction);
+        }
+        else throw new IllegalArgumentException("Each layer needs a minimum of one neuron!");
+    }
+
+    /**
+     * Adds a new layer to the network.
+     * The Sigmoid function is set as default.
+     * @param nNeurons the number of neurons in the layer
+     */
+    public void addNeuronLayer(int nNeurons)
+    {
+        addNeuronLayer(nNeurons, new Sigmoid());
     }
 
     /**
      * Builds the network structure as defined through the added layers.
      * This method has to be called to finalize the network before use.
+     * @throws IllegalStateException if the network is not ready
      */
     public void build()
     {
-        if(layerQueue.size() > 0)
+        if(nLayers > 0)
         {
-            neuronLayers = new NeuronLayer[layerQueue.size()];
+            neuronLayers = Arrays.copyOf(neuronLayers, nLayers);
 
-            int index = 0;
-            while(layerQueue.size() > 1)
-                neuronLayers[index++] = new NeuronLayer(
-                        layerQueue.peek().aFunc,
-                        layerQueue.poll().nNeurons,
-                        layerQueue.peek().nNeurons,
-                        BIAS_NEURONS);
+            for(int i = 0; i < nLayers - 1; i++)
+                neuronLayers[i].build(neuronLayers[i + 1].numberOfNormalNeurons(), BIAS_NEURONS);
 
             // No bias neurons or weights are needed for the output layer
-            neuronLayers[index] = new NeuronLayer(layerQueue.peek().aFunc, layerQueue.poll().nNeurons, 0, 0);
+            neuronLayers[nLayers - 1].build(0,0);
+
             ready = true;
         }
-        else System.err.println("No layers has been added to the network");
+        else throw new IllegalStateException("Failed to build the network - no layers has been added!");
     }
 
     /**
      * Randomizes the networks weights and resets the training variables.
      * The initial weight range is constant and determined by WEIGHT_INIT_RANGE.
      * The network has to be built before it can be reset.
+     * @throws IllegalStateException if the network is not ready
      */
     public void reset()
     {
@@ -81,13 +106,14 @@ public class NeuralNetwork implements Serializable
                 }
             }
         }
-        else System.err.println("Build the network before resetting");
+        else throw new IllegalStateException("Failed to reset - network is not built!");
     }
 
     /**
      * Feeds the supplied input data through the network and computes a result.
      * @param inputData an array containing data for each input neuron
      * @return an array containing the output of each output neuron
+     * @throws IllegalStateException if the network is not ready
      */
     public double[] compute(double... inputData)
     {
@@ -100,54 +126,21 @@ public class NeuralNetwork implements Serializable
                 NeuronLayer lastLayer = neuronLayers[layerIdx - 1];
                 NeuronLayer thisLayer = neuronLayers[layerIdx];
 
-                for(int neuronIdx = 0; neuronIdx < thisLayer.numberOfNormalNeurons(); neuronIdx++)
+                int nNeurons = thisLayer.numberOfNormalNeurons();
+                for(int neuronIdx = 0; neuronIdx < nNeurons; neuronIdx++)
                 {
-                    Neuron neuron = thisLayer.getNeurons()[neuronIdx];
+                    Neuron thisNeuron = thisLayer.getNeurons()[neuronIdx];
 
-                    neuron.sum = 0;
+                    thisNeuron.sum = 0;
                     for(Neuron lastNeuron : lastLayer.getNeurons())
-                        neuron.sum += lastNeuron.output * lastNeuron.weights[neuronIdx];
+                        thisNeuron.sum += lastNeuron.output * lastNeuron.weights[neuronIdx];
 
-                    neuron.output = thisLayer.getActivationFunction().compute(neuron.sum);
+                    thisNeuron.output = thisLayer.getActivationFunction().compute(thisNeuron.sum);
                 }
             }
             return getOutputLayer().getOutputs();
         }
-
-        System.err.println("Build the network before computing");
-        return new double[0];
-    }
-
-    /**
-     * The network is ready when layers have been added and the network is built.
-     * @return a boolean indicating the state of the network
-     */
-    public boolean isReady()
-    {
-        return ready;
-    }
-
-    /**
-     * Adds a new layer to the network.
-     * The Sigmoid function is set as default.
-     * @param nNeurons the number of neurons in the layer
-     */
-    public void addNeuronLayer(int nNeurons)
-    {
-        addNeuronLayer(nNeurons, new Sigmoid());
-    }
-
-    /**
-     * Adds a new layer to the network.
-     * @param nNeurons the number of neurons in the layer
-     * @param activationFunction the activation function to be used in calculation
-     */
-    public void addNeuronLayer(int nNeurons, ActivationFunction activationFunction)
-    {
-        if(nNeurons > 0)
-            layerQueue.add(new LayerProperty(nNeurons, activationFunction));
-        else
-            System.err.println("Each layer needs a minimum of one neuron");
+        else throw new IllegalStateException("Failed to compute - network is not built!");
     }
 
     /**
@@ -160,32 +153,34 @@ public class NeuralNetwork implements Serializable
 
     /**
      * @return the networks input layer
+     * @throws NoSuchElementException if no layers have been added
      */
     public NeuronLayer getInputLayer()
     {
+        if(nLayers == 0)
+            throw new NoSuchElementException("No input layer has been added!");
+
         return neuronLayers[0];
     }
 
     /**
      * @return the networks output layer
+     * @throws NoSuchElementException if no layers have been added
      */
     public NeuronLayer getOutputLayer()
     {
-        return neuronLayers[neuronLayers.length - 1];
+        if(nLayers == 0)
+            throw new NoSuchElementException("No output layer has been added!");
+
+        return neuronLayers[nLayers - 1];
     }
 
     /**
-     * This is a container class to hold the properties for each layer to
-     * be added in the building process.
+     * The network is ready when layers have been added and the network is built.
+     * @return a boolean indicating the state of the network
      */
-    private class LayerProperty
+    public boolean isReady()
     {
-        private int nNeurons;
-        private ActivationFunction aFunc;
-        private LayerProperty(int nNeurons, ActivationFunction aFunc)
-        {
-            this.nNeurons = nNeurons;
-            this.aFunc = aFunc;
-        }
+        return ready;
     }
 }

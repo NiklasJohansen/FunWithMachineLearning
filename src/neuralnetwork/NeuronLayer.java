@@ -8,7 +8,7 @@ import java.io.Serializable;
  * This class represents a neural layer and contains an array of
  * {@link Neuron neurons}, methods for accessing them and setting
  * their values. Each layer is supplied with its own activation function
- * which is used to normalize the output of the layers neurons.
+ * which is used to normalize the output of the neurons.
  *
  * @author Niklas Johansen
  * @version 1.0
@@ -19,41 +19,50 @@ public class NeuronLayer implements Serializable
 {
     private Neuron[] neurons;
     private int nBiasNeurons;
+    private int nNormalNeurons;
     private ActivationFunction activationFunction;
 
     /**
-     * Sets the activation function and creates the neuron array for this layer.
-     * @param activationFunction the function to be used in the neurons output calculation
+     * Sets the activation function and neuron count.
+     * @param activationFunction the function to be used in computing
      * @param nNeurons the amount of normal neurons
-     * @param nBiasNeurons the amount of bias neurons
-     * @param nWeightsPerNeuron the number of weights going out of each neuron
      */
-    public NeuronLayer(ActivationFunction activationFunction, int nNeurons, int nWeightsPerNeuron, int nBiasNeurons)
+    public NeuronLayer(int nNeurons, ActivationFunction activationFunction)
+    {
+        this.nNormalNeurons = nNeurons;
+        this.activationFunction = activationFunction;
+    }
+
+    /**
+     * Builds the layer by initializing the neuron array.
+     * @param nWeightsPerNeuron the number of weights going out of each neuron
+     * @param nBiasNeurons the number of bias neurons
+     */
+    public void build(int nWeightsPerNeuron, int nBiasNeurons)
     {
         this.nBiasNeurons = nBiasNeurons;
-        this.neurons = new Neuron[nNeurons + nBiasNeurons];
-        this.activationFunction = activationFunction;
+        this.neurons = new Neuron[nNormalNeurons + nBiasNeurons];
 
         // Normal neurons
-        for(int i = 0; i < nNeurons; i++)
+        for(int i = 0; i < nNormalNeurons; i++)
             this.neurons[i] = new Neuron(nWeightsPerNeuron);
 
         // Bias neurons
-        for(int i = nNeurons; i < nNeurons + nBiasNeurons; i++)
+        for(int i = nNormalNeurons; i < nNormalNeurons + nBiasNeurons; i++)
             this.neurons[i] = new Neuron(nWeightsPerNeuron, 1.0);
     }
 
     /**
      * Sets the outputs of each neuron.
-     * @param data an array containing data for each neuron.
+     * @param data an array containing data for each neuron
+     * @throws IllegalArgumentException if the number of data elements don't match the number of neurons
      */
     public void setOutputs(double[] data)
     {
-        if(data.length != neurons.length - nBiasNeurons)
-            System.err.println("NB! The number of inputs (" + data.length
-                    + ") don't match the number of neurons (" + (neurons.length - nBiasNeurons) + ") in this layer");
+        if(data.length != nNormalNeurons)
+            throw new IllegalArgumentException("data(" + data.length + ") != neurons(" + nNormalNeurons + ")");
 
-        for(int i = 0; i < Math.min(neurons.length, data.length); i++)
+        for(int i = 0; i < nNormalNeurons; i++)
             neurons[i].output = data[i];
     }
 
@@ -81,7 +90,7 @@ public class NeuronLayer implements Serializable
      */
     public int numberOfNormalNeurons()
     {
-        return neurons.length - nBiasNeurons;
+        return nNormalNeurons;
     }
 
     /**

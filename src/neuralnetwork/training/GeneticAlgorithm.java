@@ -7,7 +7,7 @@ import neuralnetwork.NeuralNetwork;
 /**
  * This class provides a method of combining the genes (weights) of two
  * {@link NeuralNetwork neural networks} to produce offspring with a new genetic composition.
- * The class uses a two-point crossover algorithm combined with a low probability of mutation by
+ * The class uses a two-point crossover algorithm combined with a probability of mutation by
  * randomly swapping two genes.
  *
  * @author Niklas Johansen
@@ -24,6 +24,7 @@ public class GeneticAlgorithm
      * @param fatherNetwork the father network
      * @param mutationProbability the chance of mutation in percentage
      * @return a new offspring network
+     * @throws IllegalArgumentException if the networks has different internal structure
      */
     public NeuralNetwork breed(NeuralNetwork motherNetwork, NeuralNetwork fatherNetwork, double mutationProbability)
     {
@@ -31,10 +32,7 @@ public class GeneticAlgorithm
         double[] fatherDNA = getDNA(fatherNetwork);
 
         if(motherDNA.length != fatherDNA.length)
-        {
-            System.err.println("Cannot breed networks with different internal structure!");
-            return null;
-        }
+            throw new IllegalArgumentException("Breeding failed - networks have different internal structure!");
 
         int DNALength = motherDNA.length;
         int cutLength = (int)(DNALength * (CUT_LENGTH_PERCENTAGE / 100));
