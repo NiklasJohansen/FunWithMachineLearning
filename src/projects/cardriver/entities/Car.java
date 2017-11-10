@@ -288,7 +288,7 @@ public class Car implements Comparable<Car>
         gc.transform(new Affine(new Rotate(rot + 90, xPos, yPos)));
 
         // Wheels
-        gc.setEffect(dropShadow);
+        //gc.setEffect(dropShadow);
         gc.setFill(Color.rgb(50, 50, 50, finished ? 0.1 : 1.0));
         gc.transform(new Affine(new Rotate(wheelRot, xCar - 2 + (width + 4) / 2, yCar + 5 + 4)));
         gc.fillRect(xCar - 2, yCar + 5, width + 4, 8);
