@@ -5,7 +5,7 @@ import javafx.scene.input.KeyCode;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import neuralnetwork.NeuralNetwork;
-import neuralnetwork.Utils;
+import neuralnetwork.datautils.Utils;
 import projects.cardriver.controllers.NNCarController;
 import projects.cardriver.controllers.UserCarController;
 import projects.cardriver.entities.Car;

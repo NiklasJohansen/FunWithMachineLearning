@@ -1,16 +1,12 @@
 package projects.examples;
 
-import neuralnetwork.Utils;
 import neuralnetwork.NeuralNetwork;
 import neuralnetwork.training.Backpropagation;
-
-import java.util.Arrays;
-import java.util.Scanner;
 
 /**
  * The HelloWorld of neural networks - training it to predict the result of a XOR operator.
  * This class shows how the network can be trained with the {@link Backpropagation} class
- * on an imported data set.
+ * on a small dataset.
  *
  * @author Niklas Johansen
  * @version 1.0
@@ -18,47 +14,27 @@ import java.util.Scanner;
 public class HelloWorld
 {
     /**
-     * Setts up a new network, trains it with the imported data and computes a test result.
+     * Setts up a new network, trains it and computes four test results.
      * @param args input arguments
      */
     public static void main(String[] args)
     {
         NeuralNetwork network = new NeuralNetwork();
         network.addNeuronLayer(2); // Input layer
-        network.addNeuronLayer(2); // Hidden layer 1
+        network.addNeuronLayer(2); // Hidden layer
         network.addNeuronLayer(1); // Output layer
         network.build();
 
-        double[][] input = Utils.importTrainingData("/trainingdata/xor_input.txt");
-        double[][] ideal = Utils.importTrainingData("/trainingdata/xor_ideal.txt");
+        double[][] inputData = {{0,0}, {1,0}, {0,1}, {1,1}};
+        double[][] idealData = {{0},   {1},   {1},   {0}};
 
-        Backpropagation trainer = new Backpropagation(input, ideal, 0.45, 1.0);
-        trainer.trainNetwork(network, 1000, 0.001);
+        Backpropagation trainer = new Backpropagation(inputData, idealData, 0.45, 1.0);
+        trainer.trainNetwork(network, 100, 0.001, false);
+        System.out.println(trainer.getTrainingResultString());
 
-        double[] result = network.compute(1,0);
-        System.out.println("1,0 = " + Arrays.toString(result));
-
-        consoleInput(network);
-    }
-
-    /**
-     * Reads and parses input from the IDE console, feeds it to the network
-     * and prints out the result.
-     * @param network the network to use
-     */
-    private static void consoleInput(NeuralNetwork network)
-    {
-        System.out.print("\nInput: ");
-        Scanner scanner = new Scanner(System.in);
-        while(scanner.hasNext())
-        {
-            String[] elements = scanner.next().split(",");
-            double[] inputs = new double[elements.length];
-
-            for(int i = 0; i < elements.length; i++)
-                inputs[i] = Double.parseDouble(elements[i]);
-
-            System.out.print(Arrays.toString(network.compute(inputs)) + "\nInput: ");
-        }
+        System.out.println("0,0 = " + network.compute(0,0)[0]);
+        System.out.println("1,0 = " + network.compute(1,0)[0]);
+        System.out.println("0,1 = " + network.compute(0,1)[0]);
+        System.out.println("1,1 = " + network.compute(1,1)[0]);
     }
 }
