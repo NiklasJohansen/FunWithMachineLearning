@@ -10,7 +10,9 @@ not-so-evil genius I was meant to be!
     * Genetic algorithms
  * Example classes with different use cases
     * HelloWorld - XOR operator training example
-    * CarEvaluation - importing and training with a larger dataset
+    * Import, training and testing with a larger dataset
+        * CarEvaluation
+        * MushroomClassification
  * Different machine learning demos and projects
     *  Car driving AI (NN and GA)
 

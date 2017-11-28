@@ -8,8 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This class provides static utility methods for loading training data,
- * importing and exporting a {@link NeuralNetwork}, as well as printing
+ * This class provides static utility methods for importing and
+ * exporting a {@link NeuralNetwork}, as well as printing
  * the a networks structure to the console.
  *
  * @author Niklas Johansen

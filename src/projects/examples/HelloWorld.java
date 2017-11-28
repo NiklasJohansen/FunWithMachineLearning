@@ -29,8 +29,8 @@ public class HelloWorld
         double[][] idealData = {{0},   {1},   {1},   {0}};
 
         Backpropagation trainer = new Backpropagation(inputData, idealData, 0.45, 1.0);
-        trainer.trainNetwork(network, 100, 0.001, false);
-        System.out.println(trainer.getTrainingResultString());
+        trainer.trainNetwork(network, 100, 0.0001, false);
+        System.out.println(trainer.getTrainingResultString() + "\n");
 
         System.out.println("0,0 = " + network.compute(0,0)[0]);
         System.out.println("1,0 = " + network.compute(1,0)[0]);

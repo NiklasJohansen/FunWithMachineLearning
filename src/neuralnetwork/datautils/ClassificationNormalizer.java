@@ -3,6 +3,8 @@ package neuralnetwork.datautils;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import static neuralnetwork.datautils.Dataset.ClassPosition;
+
 /**
  * Enables importing and normalizing of arbitrary data from a comma-separated dataset.
  * Scans through the given data and collects all categorical/continuous attributes and classes.
@@ -16,7 +18,7 @@ public class ClassificationNormalizer
     private ArrayList<Attribute> attributes;
     private ArrayList<String> classes;
     private String[][] dataset;
-    private int classPosition;
+    private int classIndex;
 
     public ClassificationNormalizer()
     {
@@ -31,21 +33,21 @@ public class ClassificationNormalizer
      */
     public void addDataset(String[][] dataset)
     {
-        addDataset(dataset, Integer.MAX_VALUE);
+        addDataset(dataset, ClassPosition.LAST);
     }
 
     /**
      * Adds the dataset and specifies the class index.
      * @param dataset an array containing data samples
-     * @param classPosition the position of the class element among sample columns
+     * @param position the position of the class elements among the sample elements
      */
-    public void addDataset(String[][] dataset, int classPosition)
+    public void addDataset(String[][] dataset, ClassPosition position)
     {
         if(dataset == null || dataset.length == 0)
             throw new IllegalArgumentException("Empty dataset!");
 
         this.dataset = dataset;
-        this.classPosition = Math.max(0, Math.min(classPosition, dataset[0].length - 1));
+        this.classIndex = (position == ClassPosition.FIRST ? 0 : dataset[0].length - 1);
         detectAndAddAttributesAndClasses();
     }
 
@@ -64,11 +66,11 @@ public class ClassificationNormalizer
             isNumeric[i] = true;
         }
 
-        for(int sample = 0; sample < dataset.length; sample++)
+        for(String[] sample : dataset)
         {
-            for(int j = 0; j < dataset[sample].length; j++)
+            for(int j = 0; j < sample.length; j++)
             {
-                String element = dataset[sample][j];
+                String element = sample[j];
                 if(!dataTypeList[j].contains(element))
                 {
                     dataTypeList[j].add(element);
@@ -80,7 +82,7 @@ public class ClassificationNormalizer
 
         for(int i = 0; i < nElements; i++)
         {
-            if(i == classPosition)
+            if(i == classIndex)
                 classes = dataTypeList[i];
             else if(isNumeric[i])
             {
@@ -100,6 +102,8 @@ public class ClassificationNormalizer
 
     /**
      * Generates a normalized training set for the neural network.
+     * Array at index 0 contains the input attributes.
+     * Array at index 1 contains the ideal output results.
      * @return an array containing a set of input- and ideal-data.
      */
     public double[][][] getNormalizedTrainingData()
@@ -114,10 +118,10 @@ public class ClassificationNormalizer
         {
             String[] elements = dataset[sampleIdx];
             for(int i = 0, attrIdx = 0; i < elements.length; i++)
-                if(i != classPosition)
+                if(i != classIndex)
                     inputData[sampleIdx][attrIdx] = getNormalizedValue(attributes.get(attrIdx++), elements[i]);
 
-            int index = classes.indexOf(elements[classPosition]);
+            int index = classes.indexOf(elements[classIndex]);
             idealData[sampleIdx][index] = 1.0;
         }
 
@@ -165,11 +169,11 @@ public class ClassificationNormalizer
     }
 
     /**
-     * Finds the largest value in the supplied array and returns the  class.
+     * Finds the largest value in the supplied array and returns the corresponding class.
      * @param data an array containing normalized data
      * @return the corresponding class string
      */
-    public String getBestClassMatch(double[] data)
+    public String getTopClass(double[] data)
     {
         int length = Math.min(data.length, classes.size());
 
@@ -200,7 +204,7 @@ public class ClassificationNormalizer
         for(int i = 0; i < length; i++)
         {
             sb.append(classes.get(i)).append('(');
-            sb.append(String.format("%1$2s",(int)(data[i]*100)));
+            sb.append((int)(data[i]*100));
             sb.append("%)").append(' ');
         }
 

@@ -41,14 +41,13 @@ public class NeuralNetwork implements Serializable
      */
     public void addNeuronLayer(int nNeurons, ActivationFunction activationFunction)
     {
-        if(nNeurons > 0)
-        {
-            if(nLayers >= neuronLayers.length)
-                neuronLayers = Arrays.copyOf(neuronLayers, (int)(neuronLayers.length * 1.5f));
+        if(nNeurons == 0)
+            throw new IllegalArgumentException("Each layer needs a minimum of one neuron!");
 
-            neuronLayers[nLayers++] = new NeuronLayer(nNeurons, activationFunction);
-        }
-        else throw new IllegalArgumentException("Each layer needs a minimum of one neuron!");
+        if(nLayers >= neuronLayers.length)
+            neuronLayers = Arrays.copyOf(neuronLayers, (int)(neuronLayers.length * 1.5f));
+
+        neuronLayers[nLayers++] = new NeuronLayer(nNeurons, activationFunction);
     }
 
     /**
@@ -68,19 +67,16 @@ public class NeuralNetwork implements Serializable
      */
     public void build()
     {
-        if(nLayers > 0)
-        {
-            neuronLayers = Arrays.copyOf(neuronLayers, nLayers);
+        if(nLayers == 0)
+            throw new IllegalStateException("Failed to build the network - no layers has been added!");
 
-            for(int i = 0; i < nLayers - 1; i++)
-                neuronLayers[i].build(neuronLayers[i + 1].numberOfNormalNeurons(), BIAS_NEURONS);
+        neuronLayers = Arrays.copyOf(neuronLayers, nLayers);
+        for(int i = 0; i < nLayers - 1; i++)
+            neuronLayers[i].build(neuronLayers[i + 1].numberOfNormalNeurons(), BIAS_NEURONS);
 
-            // No bias neurons or weights are needed for the output layer
-            neuronLayers[nLayers - 1].build(0,0);
-
-            ready = true;
-        }
-        else throw new IllegalStateException("Failed to build the network - no layers has been added!");
+        // No bias neurons or weights are needed for the output layer
+        neuronLayers[nLayers - 1].build(0,0);
+        ready = true;
     }
 
     /**
@@ -91,22 +87,13 @@ public class NeuralNetwork implements Serializable
      */
     public void reset()
     {
-        if(ready)
-        {
-            for(NeuronLayer layer : neuronLayers)
-            {
-                for(Neuron neuron : layer.getNeurons())
-                {
-                    for(int weightIdx = 0; weightIdx < neuron.weights.length; weightIdx++)
-                    {
-                        neuron.weights[weightIdx] = WEIGHT_INIT_RANGE * 2 * random.nextDouble() - WEIGHT_INIT_RANGE;
-                        neuron.weightChange[weightIdx] = 0;
-                        neuron.gradients[weightIdx] = 0;
-                    }
-                }
-            }
-        }
-        else throw new IllegalStateException("Failed to reset - network is not built!");
+        if(!ready)
+            throw new IllegalStateException("Failed to reset - network is not built!");
+
+        for(NeuronLayer layer : neuronLayers)
+            for(Neuron neuron : layer.getNeurons())
+                for(int weightIdx = 0; weightIdx < neuron.weights.length; weightIdx++)
+                    neuron.weights[weightIdx] = WEIGHT_INIT_RANGE * 2 * random.nextDouble() - WEIGHT_INIT_RANGE;
     }
 
     /**
@@ -117,30 +104,34 @@ public class NeuralNetwork implements Serializable
      */
     public double[] compute(double... inputData)
     {
-        if(ready)
+        if(!ready)
+            throw new IllegalStateException("Failed to compute - network is not built!");
+
+        getInputLayer().setOutputs(inputData);
+
+        for(int layerIdx = 1; layerIdx < neuronLayers.length; layerIdx++)
         {
-            getInputLayer().setOutputs(inputData);
+            NeuronLayer lastLayer = neuronLayers[layerIdx - 1];
+            NeuronLayer thisLayer = neuronLayers[layerIdx];
 
-            for(int layerIdx = 1; layerIdx < neuronLayers.length; layerIdx++)
+            ActivationFunction aFunc = thisLayer.getActivationFunction();
+            Neuron[] thisLayerNeurons = thisLayer.getNeurons();
+            Neuron[] lastLayerNeurons = lastLayer.getNeurons();
+
+            int nNeurons = thisLayer.numberOfNormalNeurons();
+            for(int neuronIdx = 0; neuronIdx < nNeurons; neuronIdx++)
             {
-                NeuronLayer lastLayer = neuronLayers[layerIdx - 1];
-                NeuronLayer thisLayer = neuronLayers[layerIdx];
+                Neuron thisNeuron = thisLayerNeurons[neuronIdx];
 
-                int nNeurons = thisLayer.numberOfNormalNeurons();
-                for(int neuronIdx = 0; neuronIdx < nNeurons; neuronIdx++)
-                {
-                    Neuron thisNeuron = thisLayer.getNeurons()[neuronIdx];
+                thisNeuron.sum = 0;
+                for(Neuron lastNeuron : lastLayerNeurons)
+                    thisNeuron.sum += lastNeuron.output * lastNeuron.weights[neuronIdx];
 
-                    thisNeuron.sum = 0;
-                    for(Neuron lastNeuron : lastLayer.getNeurons())
-                        thisNeuron.sum += lastNeuron.output * lastNeuron.weights[neuronIdx];
-
-                    thisNeuron.output = thisLayer.getActivationFunction().compute(thisNeuron.sum);
-                }
+                thisNeuron.output = aFunc.compute(thisNeuron.sum);
             }
-            return getOutputLayer().getOutputs();
         }
-        else throw new IllegalStateException("Failed to compute - network is not built!");
+
+        return getOutputLayer().getOutputs();
     }
 
     /**

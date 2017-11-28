@@ -3,7 +3,7 @@ package projects.examples;
 import neuralnetwork.NeuralNetwork;
 import neuralnetwork.datautils.AccuracyTester;
 import neuralnetwork.datautils.ClassificationNormalizer;
-import neuralnetwork.datautils.DataLoader;
+import neuralnetwork.datautils.Dataset;
 import neuralnetwork.training.Backpropagation;
 
 import java.io.IOException;
@@ -34,10 +34,9 @@ public class CarEvaluation
     public CarEvaluation() throws IOException
     {
         // Adds the dataset to the normalizer
-        String[][] dataset = DataLoader.loadDatasetFromURL(
-                "https://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data");
+        Dataset dataset = new Dataset("https://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data");
         normalizer = new ClassificationNormalizer();
-        normalizer.addDataset(dataset);
+        normalizer.addDataset(dataset.getSamples());
         System.out.println(normalizer);
 
         int nInputNeurons = normalizer.getNumberOfAttributes();
@@ -54,12 +53,14 @@ public class CarEvaluation
         // Trains the network
         double[][][] trainingData = normalizer.getNormalizedTrainingData();
         Backpropagation trainer = new Backpropagation(trainingData[0], trainingData[1], 0.3, 0.7);
-        trainer.trainNetwork(network, 3000, 0.001, true);
-        System.out.println("\n" + trainer.getTrainingResultString());
+        trainer.trainNetwork(network, 5000, 0.001, true);
+        System.out.println(trainer.getTrainingResultString());
 
-        // Tests the accuracy of the network on the same trainging data
-        AccuracyTester tester = new AccuracyTester(dataset);
-        System.out.println("Accuracy: " + tester.testClassification(network) + "%\n");
+        /* Tests the accuracy of the network on the same training data.
+        *  Larger datasets with more permutations should be tested on a separate testset. */
+        AccuracyTester tester = new AccuracyTester(dataset.getSamples());
+        tester.testClassification(network);
+        System.out.println(tester.getTestResults());
 
         // Evaluates different cars
         evaluate("low","low","5more","4","small","low");   // Ideal result: unacc
@@ -72,7 +73,7 @@ public class CarEvaluation
     {
         double[] normalizedInput = normalizer.getNormalizedAttributes(values);
         double[] result = network.compute(normalizedInput);
-        System.out.println("Result: " + normalizer.getClassMatchString(result));
+        System.out.print("\n" + Arrays.toString(values) + "  =>  " + normalizer.getClassMatchString(result));
     }
 
     public static void main(String[] args) throws IOException

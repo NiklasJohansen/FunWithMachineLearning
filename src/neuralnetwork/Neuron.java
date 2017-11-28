@@ -18,11 +18,6 @@ public class Neuron implements Serializable
     public double output;
     public double sum;
 
-    // Used for training
-    public double[] weightChange;
-    public double[] gradients;
-    public double nodeDelta;
-
     /**
      * @param nWeights the number of outgoing weights
      */
@@ -39,8 +34,6 @@ public class Neuron implements Serializable
     {
         this.output = initialOutput;
         this.weights = new double[nWeights];
-        this.gradients = new double[nWeights];
-        this.weightChange = new double[nWeights];
     }
 }
 
