@@ -5,6 +5,7 @@ import neuralnetwork.datautils.AccuracyTester;
 import neuralnetwork.datautils.ClassificationNormalizer;
 import neuralnetwork.datautils.Dataset;
 import neuralnetwork.training.Backpropagation;
+import neuralnetwork.training.NetworkTrainer;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -25,7 +26,8 @@ public class MushroomClassification
     public static void main(String[] args) throws IOException
     {
         // Imports the dataset and adds it to the normalizer
-        Dataset dataset = new Dataset("https://archive.ics.uci.edu/ml/machine-learning-databases/mushroom/agaricus-lepiota.data");
+        Dataset dataset = new Dataset(
+                "https://archive.ics.uci.edu/ml/machine-learning-databases/mushroom/agaricus-lepiota.data");
         ClassificationNormalizer normalizer = new ClassificationNormalizer();
         normalizer.addDataset(dataset.getTrainingSamples(), Dataset.ClassPosition.FIRST);
         System.out.println(normalizer);
@@ -41,10 +43,14 @@ public class MushroomClassification
         network.addNeuronLayer(nOutputNeurons);  // Output layer
         network.build();
 
-        // Trains the network
+        // Creates and configures the trainer
         double[][][] trainingData = normalizer.getNormalizedTrainingData();
-        Backpropagation trainer = new Backpropagation(trainingData[0], trainingData[1], 0.6, 0.7);
-        trainer.trainNetwork(network, 1000, 0.000001, true);
+        NetworkTrainer trainer = new Backpropagation(trainingData[0], trainingData[1], 0.6, 0.7);
+        trainer.setProgressCallbackAction(100, () ->
+                System.out.println(trainer.getEpoch() + " " + trainer.getMeanSquaredError()));
+
+        // Trains the network
+        trainer.trainNetwork(network,0.00001, 1000);
         System.out.println(trainer.getTrainingResultString());
 
         // Tests the accuracy of the trained network on separate test samples

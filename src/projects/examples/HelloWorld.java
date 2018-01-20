@@ -2,6 +2,7 @@ package projects.examples;
 
 import neuralnetwork.NeuralNetwork;
 import neuralnetwork.training.Backpropagation;
+import neuralnetwork.training.NetworkTrainer;
 
 /**
  * The HelloWorld of neural networks - training it to predict the result of a XOR operator.
@@ -28,8 +29,11 @@ public class HelloWorld
         double[][] inputData = {{0,0}, {1,0}, {0,1}, {1,1}};
         double[][] idealData = {{0},   {1},   {1},   {0}};
 
-        Backpropagation trainer = new Backpropagation(inputData, idealData, 0.45, 1.0);
-        trainer.trainNetwork(network, 100, 0.0001, false);
+        NetworkTrainer trainer = new Backpropagation(inputData, idealData, 0.8, 0.9);
+        trainer.setProgressCallbackAction(100, () -> System.out.println(trainer.getEpoch() +
+                " " + trainer.getMeanSquaredError()));
+
+        trainer.trainNetwork(network, 0.0001, 10000);
         System.out.println(trainer.getTrainingResultString() + "\n");
 
         System.out.println("0,0 = " + network.compute(0,0)[0]);

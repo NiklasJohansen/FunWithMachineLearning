@@ -7,7 +7,7 @@ import neuralnetwork.activationfunctions.ActivationFunction;
 
 /**
  * This class provides a method of training the {@link NeuralNetwork} through supervised learning.
- * Samples of input data and ideal results is used to train the network iteratively;
+ * Samples of input data and ideal results is used to train the network iteratively.
  * The algorithm calculates the delta between the supplied ideal data and actual computed results,
  * and tunes the networks weights to minimize prediction error. It starts from the output neurons
  * and propagates backwards changing the weights through online training.
@@ -15,13 +15,9 @@ import neuralnetwork.activationfunctions.ActivationFunction;
  * @author Niklas Johansen
  * @version 1.0
  */
-public class Backpropagation
+public class Backpropagation extends NetworkTrainer
 {
-    private static final int MAX_ATTEMPTS   = 10;
-    private static final int PRINT_INTERVAL = 1000;
-
-    private double[][] inputData;
-    private double[][] idealData;
+    private static final int MAX_ATTEMPTS = 10;
 
     private double[][][] prevWeightChange;
     private double[][][] gradients;
@@ -30,16 +26,10 @@ public class Backpropagation
     private double learningRate;
     private double decayRate;
     private double momentum;
-    private double error;
-    private double lowestError;
     private int resets;
-    private int batchSize;
-    private int epoch;
-    private long printTimer;
-    private long trainingTime;
 
     /**
-     * The constructor accepts arrays containing samples of inputs and ideal data, as
+     * The constructor accepts arrays containing normalized samples of inputs and ideal data, as
      * well as two training parameters.
      * @param inputData an array containing input data with one or more elements per sample.
      * @param idealData an array containing ideal data with one or more elements per sample.
@@ -50,50 +40,62 @@ public class Backpropagation
      */
     public Backpropagation(double[][] inputData, double[][]idealData, double learningRate, double momentum)
     {
-        this.inputData = inputData;
-        this.idealData = idealData;
+        this(inputData, idealData, learningRate, momentum, 0);
+    }
+
+    /**
+     * The constructor accepts arrays containing normalized samples of inputs and ideal data, as
+     * well as three training parameters.
+     * @param inputData an array containing input data with one or more elements per sample.
+     * @param idealData an array containing ideal data with one or more elements per sample.
+     * @param learningRate a parameter specifying the rate of learning. Lower values makes the
+     *                     learning go slower, but prevents oscillations yielding lower error rates.
+     * @param momentum a parameter to help the algorithm overcome local minimas. A higher momentum may
+     *                 increase the chance of reaching lower error rates, but can cause unwanted oscillation.
+     * @param decayRate the amount of decay in the learning rate throughout the training process.
+     */
+    public Backpropagation(double[][] inputData, double[][]idealData, double learningRate, double momentum, double decayRate)
+    {
+        super(inputData, idealData);
         this.learningRate = learningRate;
         this.momentum = momentum;
+        this.decayRate = decayRate;
         this.batchSize = 1;
-        this.decayRate = 0;
     }
 
     /**
      * Trains the network with the supplied dataset.
      * @param network the network to be trained
-     * @param nIterations the number of training epoch. Higher numbers may yield lower error rates
+     * @param maxEpochs the number of training epoch. Higher numbers may yield lower error rates
      * @param acceptedError The accepted error rate in which the training will complete
      * @throws IllegalStateException if the network is not ready
      */
-    public void trainNetwork(NeuralNetwork network, int nIterations, double acceptedError, boolean printProgress)
+    @Override
+    public void train(NeuralNetwork network, double acceptedError, int maxEpochs)
     {
         if(!network.isReady())
             throw new IllegalStateException("Training failed - network is not ready!");
 
-        long startTime = System.currentTimeMillis();
         init(network);
 
         do
         {
-            lowestError = Double.MAX_VALUE;
             resets++;
             network.reset();
 
-            for(epoch = 0; epoch < nIterations; epoch++)
+            for(epoch = 0; epoch < maxEpochs && meanSquaredError > acceptedError; epoch++)
             {
-                error = trainSingleIteration(network);
-
-                if(printProgress)
-                    printTrainingProgress();
-
-                if(error < acceptedError)
-                    break;
+                meanSquaredError = executeEpoch(network);
+                super.handleProgressCallback();
             }
         }
-        while(error > acceptedError && resets < MAX_ATTEMPTS);
-        trainingTime = System.currentTimeMillis() - startTime;
+        while(meanSquaredError > acceptedError && resets < MAX_ATTEMPTS);
     }
 
+    /**
+     * Initiates all arrays.
+     * @param network the network to be trained
+     */
     private void init(NeuralNetwork network)
     {
         int nLayers = network.getNeuronLayers().length;
@@ -111,35 +113,35 @@ public class Backpropagation
     }
 
     /**
-     * Iterates through the data set changing the weights for each sample.
+     * Iterates through the dataset changing the weights for each sample.
      * The error is calculated by summing up the squared delta for each sample and
      * dividing the result by the total number of samples (known as the Mean Squared Error).
      * @param network the network to be trained
      */
-    private double trainSingleIteration(NeuralNetwork network)
+    private double executeEpoch(NeuralNetwork network)
     {
         NeuronLayer[] neuronLayers = network.getNeuronLayers();
         Neuron[] outputNeurons = network.getOutputLayer().getNeurons();
         ActivationFunction aFuncOut = network.getOutputLayer().getActivationFunction();
 
-        double mse = 0;
-        int samples = 0;
+        double squaredErrorAccumulated = 0;
+        int totalSampleCount = 0;
         double alpha = learningRate / (1.0 + decayRate * epoch);
-        for(int sampleIdx = 0; sampleIdx < inputData.length; sampleIdx++)
+        for(int sampleIdx = 0; sampleIdx < super.inputData.length; sampleIdx++)
         {
-            boolean updateWeights = sampleIdx % batchSize == 0 || sampleIdx == inputData.length - 1;
+            boolean updateWeights = sampleIdx % batchSize == 0 || sampleIdx == super.inputData.length - 1;
 
-            double[] trainingSample = inputData[sampleIdx];
-            double[] idealResult = idealData[sampleIdx];
+            double[] trainingSample = super.inputData[sampleIdx];
+            double[] idealResult = super.idealData[sampleIdx];
             double[] actualResult = network.compute(trainingSample);
             int nElements = Math.min(actualResult.length, idealResult.length);
 
+            totalSampleCount += nElements;
             for(int i = 0; i < nElements; i++)
             {
                 // Sums the mean squared error for every sample
                 double deltaError = actualResult[i] - idealResult[i];
-                mse += deltaError * deltaError;
-                samples++;
+                squaredErrorAccumulated += deltaError * deltaError;
 
                 // Calculates the nodeDelta for the output neurons
                 nodeDelta[neuronLayers.length - 1][i] = -deltaError * aFuncOut.computeDerivative(outputNeurons[i].sum);
@@ -180,61 +182,20 @@ public class Backpropagation
                 }
             }
         }
-        return mse / samples;
-    }
-
-    private void printTrainingProgress()
-    {
-        if(error < lowestError && System.currentTimeMillis() > printTimer + PRINT_INTERVAL)
-        {
-            System.out.println(epoch + ": " + error);
-            lowestError = error;
-            printTimer = System.currentTimeMillis();
-        }
+        return squaredErrorAccumulated / totalSampleCount;
     }
 
     /**
-     *
-     * @param size
+     * {@inheritDoc}
      */
-    public void setBatchSize(int size)
-    {
-        this.batchSize = size;
-    }
-
-    /**
-     * The decay rate
-     * @param rate
-     */
-    public void setDecayRate(double rate)
-    {
-        this.decayRate = rate;
-    }
-
-    /**
-     * @return a string containing information about the training session
-     */
-    public String getTrainingResultString()
+    @Override
+    protected String getTrainingData()
     {
         StringBuilder sb = new StringBuilder();
-        sb.append("\n------------- Training Results -------------");
-        sb.append("\nTraining samples: ").append(inputData.length);
-        sb.append("\nMini-batch size: ").append(batchSize == 1 ? "1 (stochastic)" : batchSize);
         sb.append("\nLearning rate: ").append(learningRate);
         sb.append("\nDecay rate: ").append(decayRate);
         sb.append("\nMomentum: ").append(momentum);
-        sb.append("\nEpochs: ").append(epoch);
         sb.append("\nResets: ").append(resets);
-        sb.append("\nTraining time: " + trainingTime + " ms");
-        sb.append("\nMean squared error:  ").append(String.format("%.12f", error));
         return sb.toString();
-    }
-
-    /**
-     * @return the mean squared error for the trained network
-     */
-    public double getError()
-    {
-        return error;
     }
 }

@@ -4,14 +4,16 @@ import neuralnetwork.NeuralNetwork;
 import neuralnetwork.datautils.AccuracyTester;
 import neuralnetwork.datautils.ClassificationNormalizer;
 import neuralnetwork.datautils.Dataset;
-import neuralnetwork.training.Backpropagation;
+import neuralnetwork.training.NetworkTrainer;
+import neuralnetwork.training.ResilientPropagation;
 
 import java.io.IOException;
 import java.util.Arrays;
 
 /**
- * This example shows how the network is trained to precisely evaluate different cars.
- * A car can be evaluated to one of the following classes: unacc, acc, good, vgood
+ * This example shows how the network is trained by the {@link ResilientPropagation} class,
+ * to precisely evaluate different cars. A car can be evaluated to one of the following
+ * classes: unacc, acc, good, vgood
  * The evaluation is based upon six specific attributes:
  *  - buying price
  *  - maintenance price
@@ -50,14 +52,18 @@ public class CarEvaluation
         network.addNeuronLayer(nOutputNeurons);  // Output layer
         network.build();
 
-        // Trains the network
+        // Creates and configures the trainer
         double[][][] trainingData = normalizer.getNormalizedTrainingData();
-        Backpropagation trainer = new Backpropagation(trainingData[0], trainingData[1], 0.3, 0.7);
-        trainer.trainNetwork(network, 5000, 0.001, true);
+        NetworkTrainer trainer = new ResilientPropagation(trainingData[0], trainingData[1]);
+        trainer.setProgressCallbackAction(100, () ->
+                System.out.println(trainer.getEpoch() + " " + trainer.getMeanSquaredError()));
+
+        // Trains the network
+        trainer.trainNetwork(network,0.001, 10000);
         System.out.println(trainer.getTrainingResultString());
 
         /* Tests the accuracy of the network on the same training data.
-        *  Larger datasets with more permutations should be tested on a separate testset. */
+           Larger datasets with more permutations should be tested on a separate testset. */
         AccuracyTester tester = new AccuracyTester(dataset.getSamples());
         tester.testClassification(network);
         System.out.println(tester.getTestResults());

@@ -8,13 +8,16 @@ import static neuralnetwork.datautils.Dataset.ClassPosition;
 /**
  * Enables importing and normalizing of arbitrary data from a comma-separated dataset.
  * Scans through the given data and collects all categorical/continuous attributes and classes.
- * Used to normalize the data into numerical values between 0.0 and 1.0.
+ * Used to normalize the data into numerical values between -1.0 and 1.0.
  *
  * @author Niklas Johansen
  * @version 1.0
  */
 public class ClassificationNormalizer
 {
+    private double normalLow = -1.0;
+    private double normalHigh = 1.0;
+
     private ArrayList<Attribute> attributes;
     private ArrayList<String> classes;
     private String[][] dataset;
@@ -48,14 +51,14 @@ public class ClassificationNormalizer
 
         this.dataset = dataset;
         this.classIndex = (position == ClassPosition.FIRST ? 0 : dataset[0].length - 1);
-        detectAndAddAttributesAndClasses();
+        findAttributesAndClasses();
     }
 
     /**
      * Scans through all samples and collects the different attribute
      * categories and continuous number ranges.
      */
-    private void detectAndAddAttributesAndClasses()
+    private void findAttributesAndClasses()
     {
         int nElements = dataset[0].length;
         boolean[] isNumeric = new boolean[nElements];
@@ -129,26 +132,28 @@ public class ClassificationNormalizer
     }
 
     /**
-     * Normalizes a string value(categorical or continuous) to a number between 0.0 and 1.0
+     * Normalizes a string value(categorical or continuous) to a number between the
+     * defined low and high points (default between -1.0 to 1.0).
      * @param attribute the associated attribute object
      * @param dataValue the value to normalize
-     * @return a number between 0.0 and 1.0
+     * @return a normalized number
      */
     private double getNormalizedValue(Attribute attribute, String dataValue)
     {
-        if(attribute.categorical)
+        if(attribute.isCategorical())
         {
             Object[] values = attribute.categories;
-            for(int i = 0; i < values.length; i++)
-                if(values[i].equals(dataValue))
-                    return (double) i / values.length;
+            for(double i = 0; i < values.length; i++)
+                if(values[(int)i].equals(dataValue))
+                    return normalLow + (normalHigh - normalLow) * (i + 0.5) / values.length;
 
             throw new IllegalArgumentException(dataValue + " was not found among the defined categories!");
         }
         else // Continuous
         {
-            double data = Double.parseDouble(dataValue);
-            return (data - attribute.minRange) / (attribute.maxRange - attribute.minRange);
+            double value = Double.parseDouble(dataValue) - attribute.minRange;
+            double delta = attribute.maxRange - attribute.minRange;
+            return normalLow + (normalHigh - normalLow) * (value / delta);
         }
     }
 
@@ -187,7 +192,6 @@ public class ClassificationNormalizer
                 highestIndex = i;
             }
         }
-
         return classes.get(highestIndex);
     }
 
@@ -222,13 +226,24 @@ public class ClassificationNormalizer
         {
             Attribute a = attributes.get(i);
             sb.append("\nAttr ").append(i).append(": ");
-            if(a.categorical)
+            if(a.isCategorical())
                 sb.append(Arrays.toString(a.categories));
             else
                 sb.append("continuous (").append(a.minRange).append(" - ").append(a.maxRange).append(')');
         }
         sb.append("\nClasses: ").append(Arrays.toString(classes.toArray())).append('\n');
         return sb.toString();
+    }
+
+    /**
+     * Sets the normalization range.
+     * @param low the lowest point of a normalized attribute
+     * @param high the highest point a normalized attribute
+     */
+    public void setNormalRange(double low, double high)
+    {
+        this.normalLow = low;
+        this.normalHigh = high;
     }
 
     /**
@@ -252,21 +267,23 @@ public class ClassificationNormalizer
      */
     private class Attribute
     {
-        private boolean categorical;
         private double minRange, maxRange;
         private Object[] categories;
 
         private Attribute(Object[] v)
         {
             this.categories = v;
-            this.categorical = true;
         }
 
         private Attribute(double minRange, double maxRange)
         {
             this.minRange = minRange;
             this.maxRange = maxRange;
-            this.categorical = false;
+        }
+
+        public boolean isCategorical()
+        {
+            return categories != null;
         }
     }
 }

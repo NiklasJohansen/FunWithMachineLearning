@@ -20,7 +20,6 @@ import java.util.*;
 public class NeuralNetwork implements Serializable
 {
     private static final int BIAS_NEURONS = 1;
-    private static final double WEIGHT_INIT_RANGE = 2.0;
 
     private Random random;
     private NeuronLayer[] neuronLayers;
@@ -80,8 +79,7 @@ public class NeuralNetwork implements Serializable
     }
 
     /**
-     * Randomizes the networks weights and resets the training variables.
-     * The initial weight range is constant and determined by WEIGHT_INIT_RANGE.
+     * Initializes the networks weights using the Xavier algorithm.
      * The network has to be built before it can be reset.
      * @throws IllegalStateException if the network is not ready
      */
@@ -90,10 +88,16 @@ public class NeuralNetwork implements Serializable
         if(!ready)
             throw new IllegalStateException("Failed to reset - network is not built!");
 
-        for(NeuronLayer layer : neuronLayers)
-            for(Neuron neuron : layer.getNeurons())
+        for(int layerIdx = 0; layerIdx < neuronLayers.length - 1; layerIdx++)
+        {
+            Neuron[] neurons = neuronLayers[layerIdx].getNeurons();
+            double variance = 2.0 / (neurons.length + neurons[0].weights.length);
+            double standardDeviation = Math.sqrt(variance);
+
+            for(Neuron neuron : neurons)
                 for(int weightIdx = 0; weightIdx < neuron.weights.length; weightIdx++)
-                    neuron.weights[weightIdx] = WEIGHT_INIT_RANGE * 2 * random.nextDouble() - WEIGHT_INIT_RANGE;
+                    neuron.weights[weightIdx] = random.nextGaussian() * standardDeviation;
+        }
     }
 
     /**
